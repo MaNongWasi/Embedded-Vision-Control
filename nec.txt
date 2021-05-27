@@ -1,0 +1,3 @@
+curl -L "https://app.roboflow.com/ds/j1gLDXM1sa?key=uPMUAnf8JH" > roboflow.zip; unzip roboflow.zip; rm roboflow.zip
+python3 detect.py --weight Embedded-Vision-Control/best-int8.tflite --img 416 --tfl-int8 --source test/images
+
