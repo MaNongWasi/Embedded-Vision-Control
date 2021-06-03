@@ -1,0 +1,5 @@
+train: ../train/images
+val: ../valid/images
+
+nc: 6
+names: ['blue_ball', 'blue_goal', 'green_ball', 'orange_ball', 'orange_goal', 'red_ball']
