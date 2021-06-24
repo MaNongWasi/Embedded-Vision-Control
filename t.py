@@ -15,72 +15,13 @@ from utils.general import check_img_size, check_requirements, non_max_suppressio
     xyxy2xywh, strip_optimizer, set_logging, increment_path
 from utils.plots import plot_one_box
 from utils.torch_utils import select_device, load_classifier, time_synchronized
+import tensorflow as tf
+from tensorflow import keras
 
+imgsz = 416
 
-def detect(save_img=False):
-    t0 = time.time()
-    imgsz = 416
-    # source, weights, view_img, save_txt, imgsz = opt.source, opt.weights, opt.view_img, opt.save_txt, opt.img_size
-    # webcam = source.isnumeric() or source.endswith('.txt') or source.lower().startswith(
-        # ('rtsp://', 'rtmp://', 'http://'))
-
-    # Directories
-    # save_dir = Path(increment_path(Path(opt.project) / opt.name, exist_ok=opt.exist_ok))  # increment run
-    # (save_dir / 'labels' if save_txt else save_dir).mkdir(parents=True, exist_ok=True)  # make dir
-
-    # Initialize
-    set_logging()
-    # device = select_device(opt.device)
-    device = select_device('')
-    half = device.type != 'cpu'  # half precision only supported on CUDA
-
-    # Load model
-    # weights = weights[0] if isinstance(weights, list) else weights
-    # suffix = Path(weights).suffix
-    # if suffix == '.pt':
-    #     backend = 'pytorch'
-    #     model = attempt_load(weights, map_location=device)  # load FP32 model
-    #     imgsz = check_img_size(imgsz, s=model.stride.max())  # check img_size
-    #     names = model.module.names if hasattr(model, 'module') else model.names  # class names
-    #     if half:
-    #         model.half()  # to FP16
-    # else:
-    import tensorflow as tf
-    from tensorflow import keras
-
-    with open('data.yaml') as f:
-        names = yaml.load(f, Loader=yaml.FullLoader)['names']  # class names (assume COCO)
-
-    # if suffix == '.pb':
-    #     backend = 'graph_def'
-
-    #     # https://www.tensorflow.org/guide/migrate#a_graphpb_or_graphpbtxt
-    #     # https://github.com/leimao/Frozen_Graph_TensorFlow
-    #     def wrap_frozen_graph(graph_def, inputs, outputs):
-    #         def _imports_graph_def():
-    #             tf.compat.v1.import_graph_def(graph_def, name="")
-
-    #         wrapped_import = tf.compat.v1.wrap_function(_imports_graph_def, [])
-    #         import_graph = wrapped_import.graph
-    #         return wrapped_import.prune(
-    #             tf.nest.map_structure(import_graph.as_graph_element, inputs),
-    #             tf.nest.map_structure(import_graph.as_graph_element, outputs))
-
-    #     graph = tf.Graph()
-    #     graph_def = graph.as_graph_def()
-    #     graph_def.ParseFromString(open(weights, 'rb').read())
-    #     frozen_func = wrap_frozen_graph(graph_def=graph_def, inputs="x:0", outputs="Identity:0")
-
-    # elif suffix == '.tflite':
-    # backend = 'tflite'
-    # Load TFLite model and allocate tensors
-    # interpreter = tf.lite.Interpreter(model_path=weights)
-    interpreter = tf.lite.Interpreter(model_path='best-int8.tflite')
-    interpreter.allocate_tensors()
-
-    # Get input and output tensors
-    input_details = interpreter.get_input_details()
-    output_details = interpreter.get_output_details()
+#def detect(device, names, half, interpreter, input_details, output_details):
+def detect():
 
         # else:
         #     backend = 'saved_model'
@@ -105,7 +46,6 @@ def detect(save_img=False):
 
     # Get names and colors
     colors = [[random.randint(0, 255) for _ in range(3)] for _ in names]
-    print(f'start t0 ({time.time() - t0:.3f}s)')
     # Run inference
     t0 = time.time()
     
@@ -176,6 +116,7 @@ def detect(save_img=False):
 
                 # Write results
                 for *xyxy, conf, cls in reversed(det):
+                    ssize = int(xyxy[2] - xyxy[0]) * (xyxy[3] - xyxy[1])
                     # if save_txt:  # Write to file
                     #     xywh = (xyxy2xywh(torch.tensor(xyxy).view(1, 4)) / gn).view(-1).tolist()  # normalized xywh
                     #     line = (cls, *xywh, conf) if opt.save_conf else (cls, *xywh)  # label format
@@ -185,6 +126,7 @@ def detect(save_img=False):
                     # if save_img or view_img:  # Add bbox to image
                     label = f'{names[int(cls)]} {conf:.2f}'
                     plot_one_box(xyxy, im0, label=label, color=colors[int(cls)], line_thickness=3)
+                    print ("size ", ssize)
 
             # Print time (inference + NMS)
             print(f'{s}Done. ({t2 - t1:.3f}s)')
@@ -192,8 +134,9 @@ def detect(save_img=False):
             # Stream results
             # if view_img:
             cv2.imshow(str(p), im0)
-
-            cv2.waitKey(5000)  # 1 millisecond
+#            cv2.waitKey()
+#            cv2.show()
+            cv2.waitKey(1000)  # 1 millisecond
 
             # Save results (image with detections)
             # if save_img:
@@ -216,7 +159,7 @@ def detect(save_img=False):
         # s = f"\n{len(list(save_dir.glob('labels/*.txt')))} labels saved to {save_dir / 'labels'}" if save_txt else ''
         # print(f"Results saved to {save_dir}{s}")
 
-    print(f'Done. ({time.time() - t0:.3f}s)')
+#    print(f'Done. ({time.time() - t0:.3f}s)')
 
 
 if __name__ == '__main__':
@@ -241,12 +184,75 @@ if __name__ == '__main__':
     # parser.add_argument('--yaml', type=str, default='data.yaml', help='model file')
     opt = parser.parse_args()
     print(opt)
-    check_requirements()
+    t0=time.time()
+#    check_requirements()
+#    print (f"check req takes ({time.time() - t0:.3f}s)")
 
-    with torch.no_grad():
-        # if opt.update:  # update all models (to fix SourceChangeWarning)
-            # for opt.weights in ['yolov5s.pt', 'yolov5m.pt', 'yolov5l.pt', 'yolov5x.pt']:
-                # detect()
-                # strip_optimizer(opt.weights)
-        # else:
-        detect()
+    # Initialize
+    set_logging()
+    # device = select_device(opt.device)
+    device = select_device('')
+    half = device.type != 'cpu'  # half precision only supported on CUDA
+
+    # Load model
+    # weights = weights[0] if isinstance(weights, list) else weights
+    # suffix = Path(weights).suffix
+    # if suffix == '.pt':
+    #     backend = 'pytorch'
+    #     model = attempt_load(weights, map_location=device)  # load FP32 model
+    #     imgsz = check_img_size(imgsz, s=model.stride.max())  # check img_size
+    #     names = model.module.names if hasattr(model, 'module') else model.names  # class names
+    #     if half:
+    #         model.half()  # to FP16
+    # else:
+
+    with open('data.yaml') as f:
+        names = yaml.load(f, Loader=yaml.FullLoader)['names']  # class names (assume COCO)
+
+    # if suffix == '.pb':
+    #     backend = 'graph_def'
+
+    #     # https://www.tensorflow.org/guide/migrate#a_graphpb_or_graphpbtxt
+    #     # https://github.com/leimao/Frozen_Graph_TensorFlow
+    #     def wrap_frozen_graph(graph_def, inputs, outputs):
+    #         def _imports_graph_def():
+    #             tf.compat.v1.import_graph_def(graph_def, name="")
+
+    #         wrapped_import = tf.compat.v1.wrap_function(_imports_graph_def, [])
+    #         import_graph = wrapped_import.graph
+    #         return wrapped_import.prune(
+    #             tf.nest.map_structure(import_graph.as_graph_element, inputs),
+    #             tf.nest.map_structure(import_graph.as_graph_element, outputs))
+
+    #     graph = tf.Graph()
+    #     graph_def = graph.as_graph_def()
+    #     graph_def.ParseFromString(open(weights, 'rb').read())
+    #     frozen_func = wrap_frozen_graph(graph_def=graph_def, inputs="x:0", outputs="Identity:0")
+
+    # elif suffix == '.tflite':
+    # backend = 'tflite'
+    # Load TFLite model and allocate tensors
+    # interpreter = tf.lite.Interpreter(model_path=weights)
+    interpreter = tf.lite.Interpreter(model_path='best-int8.tflite')
+    interpreter.allocate_tensors()
+
+    # Get input and output tensors
+    input_details = interpreter.get_input_details()
+    output_details = interpreter.get_output_details()
+    print (f"init takes ({time.time() - t0:.3f}s)")
+
+    cap = cv2.VideoCapture(0)
+    while True:
+#        take_picture()
+        _, frame = cap.read()
+        cv2.imwrite('test/image/current.png', frame)
+        with torch.no_grad():
+            detect()
+
+
+        key = cv2.waitKey(1)
+        if key == 27:
+            break
+
+    cap.release()
+    cv2.destroyAllWindows()
