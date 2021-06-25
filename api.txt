@@ -1,0 +1,22 @@
+api
+ball found
+
+
+cloest
+scan balls, return json
+found, color, degree 
+
+
+all goal, 
+scan goals
+
+
+
+34.5 high goal
+red ball 10
+green 9
+
+1408 
+
+
+
