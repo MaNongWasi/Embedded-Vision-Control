@@ -1,3 +1,7 @@
+#!flask/bin/python
+from flask import Flask, request
+import json
+
 import argparse
 import time
 from pathlib import Path
@@ -19,9 +23,47 @@ import tensorflow as tf
 from tensorflow import keras
 
 imgsz = 416
+#    cap = cv2.VideoCapture(0)
+app = Flask(__name__)
+
+@app.route('/')
+def index():
+    return json.dumps({
+        "Balls": [
+            {
+                "color": "green",
+                "distance": "67",
+                "degrees": "23"
+            },
+            {
+                "color": "red",
+                "distance": "134",
+                "degrees": "12"
+            }
+        ],
+        "Goals": [
+            {
+                "color": "green",
+                "distance": "67",
+                "degrees": "23"
+            },
+            {
+                "color": "red",
+                "distance": "134",
+                "degrees": "12"
+            }
+        ]
+    })
+
+
+
+def dec():
+    _, frame = cap.read()
+    with torch.no_grad():
+        detect(frame)
 
 #def detect(device, names, half, interpreter, input_details, output_details):
-def detect():
+def detect(source):
 
         # else:
         #     backend = 'saved_model'
@@ -42,7 +84,7 @@ def detect():
     # else:
         # save_img = True
     # dataset = LoadImages(source, img_size=imgsz, auto=backend == 'pytorch')
-    dataset = LoadImages('test/image', img_size=imgsz, auto=False)
+    dataset = LoadImages(source, img_size=imgsz, auto=False)
 
     # Get names and colors
     colors = [[random.randint(0, 255) for _ in range(3)] for _ in names]
@@ -241,18 +283,20 @@ if __name__ == '__main__':
     output_details = interpreter.get_output_details()
     print (f"init takes ({time.time() - t0:.3f}s)")
 
-    cap = cv2.VideoCapture(0)
-    while True:
+#    cap = cv2.VideoCapture(0)
+#    while True:
 #        take_picture()
-        _, frame = cap.read()
-        cv2.imwrite('test/image/current.png', frame)
-        with torch.no_grad():
-            detect()
+ #       _, frame = cap.read()
+  #      cv2.imwrite('test/image/current.png', frame)
+   #     with torch.no_grad():
+  #          detect()
 
 
-        key = cv2.waitKey(1)
-        if key == 27:
-            break
+   #     key = cv2.waitKey(1)
+   #     if key == 27:
+   #         break
 
-    cap.release()
-    cv2.destroyAllWindows()
+#    cap.release()
+#    cv2.destroyAllWindows()
+    app.run(debug=True)
+
